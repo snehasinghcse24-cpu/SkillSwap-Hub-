@@ -1,0 +1,384 @@
+import React, { useState, useCallback, memo } from 'react';
+
+// --- MOCK DATA ---
+const mockCurrentUser = {
+  id: 'user_alex',
+  name: 'Alex Ray',
+  email: 'alex.ray@example.com',
+  bio: 'UX designer by day, aspiring musician by night.',
+  credits: 12,
+  isVerified: true,
+  skillsToTeach: ['UI/UX Design', 'Figma', 'HTML/CSS'],
+  skillsToLearn: ['Guitar', 'Japanese Cooking', 'Video Editing'],
+  avatar: `https://placehold.co/128x128/dbeafe/4338ca?text=AR`,
+  badges: ['Founding Member', 'Top Teacher'],
+};
+
+const mockMatches = [
+  {
+    id: 'user_taylor',
+    name: 'Taylor K.',
+    avatar: `https://placehold.co/128x128/c7d2fe/4338ca?text=TK`,
+    skillsToTeach: ['Guitar Fundamentals', 'Songwriting'],
+    skillsToLearn: ['UI/UX Design'],
+    matchPercentage: 92,
+    isVerified: true,
+  },
+  {
+    id: 'user_jordan',
+    name: 'Jordan Lee',
+    avatar: `https://placehold.co/128x128/e0e7ff/4338ca?text=JL`,
+    skillsToTeach: ['Video Editing', 'Premiere Pro'],
+    skillsToLearn: ['Figma'],
+    matchPercentage: 85,
+    isVerified: false,
+  },
+];
+
+const mockReviews = [
+    { id: 1, author: 'Priya S.', rating: 5, comment: 'Alex is a fantastic teacher! Explained Figma clearly and was very patient.'},
+    { id: 2, author: 'Rohan M.', rating: 4, comment: 'Great session on HTML basics. Looking forward to the next one.'},
+];
+
+const mockCommunities = [
+    { id: 'c1', name: 'Code & Coffee', members: 128, description: 'For all things web development and design.' },
+    { id: 'c2', name: 'The Art Hub', members: 89, description: 'Share your art, get feedback, and collaborate.' },
+    { id: 'c3', name: 'Music Makers', members: 204, description: 'Connect with fellow musicians and producers.' },
+];
+
+const mockChatMessages = [
+    { id: 1, sender: 'user_taylor', text: "Hey Alex! Saw we're a match. I can definitely help with guitar." },
+    { id: 2, sender: 'user_alex', text: "Awesome, Taylor! I'm a total beginner. Your designs look great too!" },
+    { id: 3, sender: 'user_taylor', text: "Thanks! Happy to trade some lessons for some UX tips. When works for you?" },
+];
+
+// --- API CLIENT SKELETON ---
+const apiClient = {
+  login: async (email, password) => {
+    console.log('Attempting login with:', email, password);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (email === 'fail@example.com') {
+        return { success: false, error: 'Invalid email or password.' };
+    }
+    return { success: true, token: 'fake-jwt-token', user: mockCurrentUser };
+  },
+  register: async (userData) => {
+    console.log('Registering user:', userData);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return { success: true, token: 'fake-jwt-token', user: mockCurrentUser };
+  },
+  getMatches: async (token) => {
+    console.log('Fetching matches...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { success: true, data: mockMatches };
+  }
+};
+
+// --- HELPER COMPONENT ---
+const HoverButton = ({ onClick, style, hoverStyle, children, disabled }) => {
+    const [hover, setHover] = useState(false);
+    return (
+        <button
+            style={{ ...style, ...(hover && !disabled ? hoverStyle : null), ...(disabled ? styles.buttonDisabled : null) }}
+            onClick={onClick}
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            disabled={disabled}
+        >
+            {children}
+        </button>
+    );
+};
+
+
+// --- SCREEN COMPONENTS (Web-compatible with Enhancements) ---
+
+const AuthScreen = ({ onAuthSuccess }) => {
+    const [isLogin, setIsLogin] = useState(true);
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [validationError, setValidationError] = useState('');
+
+    const validateForm = () => {
+        if (!isLogin && !name) { setValidationError('Name is required.'); return false; }
+        if (!/\S+@\S+\.\S+/.test(email)) { setValidationError('Please enter a valid email address.'); return false; }
+        if (password.length < 8) { setValidationError('Password must be at least 8 characters long.'); return false; }
+        setValidationError('');
+        return true;
+    };
+
+    const handleAuth = useCallback(async () => {
+        if (!validateForm()) return;
+        setIsLoading(true);
+        setError('');
+        const response = isLogin
+            ? await apiClient.login(email, password)
+            : await apiClient.register({ name, email, password });
+        setIsLoading(false);
+        if (response.success) onAuthSuccess(response.user);
+        else setError(response.error || 'Something went wrong.');
+    }, [isLogin, name, email, password, onAuthSuccess]);
+    
+    return (
+        <div style={styles.authContainer}>
+            <div style={styles.authBox}>
+                <p style={styles.authTitle}>{isLogin ? 'Welcome Back' : 'Join SkillSwapHub'}</p>
+                {validationError && <p style={styles.errorText}>{validationError}</p>}
+                {error && <p style={styles.errorText}>{error}</p>}
+                {!isLogin && <input placeholder="Full Name" style={styles.input} value={name} onChange={(e) => setName(e.target.value)} />}
+                <input placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+                <input placeholder="Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
+                <HoverButton style={styles.buttonPrimary} hoverStyle={styles.buttonPrimaryHover} onClick={handleAuth} disabled={isLoading}>
+                    <span style={styles.buttonPrimaryText}>{isLoading ? 'Loading...' : (isLogin ? 'Login' : 'Create Account')}</span>
+                </HoverButton>
+                <button onClick={() => setIsLogin(!isLogin)} style={styles.authSwitchButton}>
+                    <p style={styles.authSwitchText}>
+                        {isLogin ? "Don't have an account? " : "Already have an account? "}
+                        <span style={{ fontWeight: 'bold', color: styles.colors.primary }}>{isLogin ? 'Register' : 'Login'}</span>
+                    </p>
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const MatchCard = memo(({ match, onChat }) => (
+    <div style={styles.card}>
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                <img src={match.avatar} style={styles.cardAvatar} alt={match.name}/>
+                <div>
+                    <p style={styles.cardName}>{match.name} {match.isVerified && <span title="Verified User">✅</span>}</p>
+                </div>
+            </div>
+            <div style={{ alignItems: 'flex-end' }}>
+                <p style={styles.cardMatchPercent}>{match.matchPercentage}%</p>
+                <p style={{ fontSize: 12, color: styles.colors.textLight }}>Match</p>
+            </div>
+        </div>
+        <div style={{ marginTop: 12 }}>
+            <p style={styles.cardSkillText}><span style={{fontWeight: 'bold', color: styles.colors.teal}}>TEACHES:</span> {match.skillsToTeach.join(', ')}</p>
+            <p style={styles.cardSkillText}><span style={{fontWeight: 'bold', color: styles.colors.primary}}>WANTS:</span> {match.skillsToLearn.join(', ')}</p>
+        </div>
+        <HoverButton style={styles.buttonSecondary} hoverStyle={styles.buttonSecondaryHover} onClick={() => onChat(match)}>
+            <span style={styles.buttonSecondaryText}>Start Chat</span>
+        </HoverButton>
+    </div>
+));
+
+const DashboardScreen = ({ onChat }) => {
+    return (
+        <div style={styles.screenContainer}>
+            <p style={styles.screenTitle}>Your Skill Matches</p>
+            {mockMatches.map(match => <MatchCard key={match.id} match={match} onChat={onChat}/>)}
+             <div style={styles.profileSection}>
+                <p style={styles.profileSectionTitle}>AI Recommended Skills For You</p>
+                 <div style={styles.skillsContainer}>
+                    <span style={styles.skillTagPurple}>Python</span>
+                    <span style={styles.skillTagPurple}>Content Writing</span>
+                    <span style={styles.skillTagPurple}>Public Speaking</span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ProfileScreen = ({ user, onLogout }) => (
+    <div style={styles.screenContainer}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <p style={styles.screenTitle}>Profile</p>
+            <HoverButton onClick={onLogout} style={styles.buttonLogout} hoverStyle={styles.buttonLogoutHover}>Logout</HoverButton>
+        </div>
+        <div style={{ alignItems: 'center', marginBottom: 20}}>
+            <img src={user.avatar} style={{ width: 100, height: 100, borderRadius: 50 }} alt={user.name}/>
+            <p style={{ fontSize: 24, fontWeight: 'bold', color: styles.colors.textDark, marginTop: 10 }}>{user.name} {user.isVerified && <span title="Verified User">✅</span>}</p>
+            <p style={{ color: styles.colors.textLight }}>{user.bio}</p>
+            <div style={styles.creditsBox}>
+                <span style={{fontSize: 24, fontWeight: 'bold', color: styles.colors.primary}}>{user.credits}</span>
+                <span style={{color: styles.colors.textLight}}>SkillSwap Credits</span>
+            </div>
+        </div>
+        <div style={styles.profileSection}>
+            <p style={styles.profileSectionTitle}>Skills I Teach</p>
+            <div style={styles.skillsContainer}>{user.skillsToTeach.map(s => <span key={s} style={styles.skillTagTeal}>{s}</span>)}</div>
+        </div>
+        <div style={styles.profileSection}>
+            <p style={styles.profileSectionTitle}>Skills I Want to Learn</p>
+            <div style={styles.skillsContainer}>{user.skillsToLearn.map(s => <span key={s} style={styles.skillTagPurple}>{s}</span>)}</div>
+        </div>
+        <div style={styles.profileSection}>
+            <p style={styles.profileSectionTitle}>Achievements & Badges</p>
+            <div style={styles.skillsContainer}>{user.badges.map(b => <span key={b} style={styles.badgeTag}>🏆 {b}</span>)}</div>
+        </div>
+        <div style={styles.profileSection}>
+            <p style={styles.profileSectionTitle}>Reviews (2)</p>
+            {mockReviews.map(r => (
+                <div key={r.id} style={styles.reviewCard}>
+                    <p style={{ fontWeight: 'bold' }}>{'⭐'.repeat(r.rating)} <span style={{color: styles.colors.textLight}}>by {r.author}</span></p>
+                    <p>{r.comment}</p>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+const CommunitiesScreen = () => (
+    <div style={styles.screenContainer}>
+        <p style={styles.screenTitle}>Communities</p>
+        {mockCommunities.map(c => (
+            <div key={c.id} style={styles.card}>
+                <p style={styles.cardName}>{c.name}</p>
+                <p style={styles.cardSkillText}>{c.description}</p>
+                <p style={{color: styles.colors.textLight, marginTop: 10}}>{c.members} members</p>
+                <HoverButton style={styles.buttonSecondary} hoverStyle={styles.buttonSecondaryHover}>
+                    <span style={styles.buttonSecondaryText}>Join Group</span>
+                </HoverButton>
+            </div>
+        ))}
+    </div>
+);
+
+const ChatScreen = ({ partner, onBack, onVideoCall }) => {
+    const [messages, setMessages] = useState(mockChatMessages);
+    const [newMessage, setNewMessage] = useState('');
+
+    const handleSendMessage = () => {
+        if (!newMessage.trim()) return;
+        const optimisticMessage = { id: Date.now(), sender: 'user_alex', text: newMessage, status: 'sending'};
+        setMessages(prev => [...prev, optimisticMessage]);
+        setNewMessage('');
+        setTimeout(() => setMessages(prev => prev.map(msg => msg.id === optimisticMessage.id ? { ...msg, status: 'sent' } : msg)), 800);
+    };
+
+    return (
+        <div style={styles.chatScreen}>
+            <div style={styles.chatHeader}>
+                <button onClick={onBack} style={styles.chatBackButton}><span style={{ color: styles.colors.primary, fontSize: 16 }}>← Back</span></button>
+                <p style={styles.chatHeaderText}>{partner.name}</p>
+                <HoverButton onClick={onVideoCall} style={styles.videoCallButton} hoverStyle={styles.videoCallButtonHover}><span style={{fontSize: 20}}>📹</span></HoverButton>
+            </div>
+            <div style={styles.chatMessagesContainer}>
+                {messages.map(msg => (<div key={msg.id} style={{... (msg.sender === 'user_alex' ? styles.messageSent : styles.messageReceived), opacity: msg.status === 'sending' ? 0.6 : 1}}><p style={{margin: 0}}>{msg.text}</p></div>))}
+            </div>
+             <div style={styles.chatInputContainer}>
+                <input type="text" placeholder="Type a message..." style={styles.chatInput} value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()} />
+                <HoverButton style={styles.sendButton} hoverStyle={styles.sendButtonHover} onClick={handleSendMessage}><span style={{fontSize: 16}}>➤</span></HoverButton>
+            </div>
+        </div>
+    );
+};
+
+const VideoCallScreen = ({ partner, onEndCall }) => (
+    <div style={styles.videoCallContainer}>
+        <div style={styles.mainVideoFeed}><p style={styles.videoFeedLabel}>{partner.name}</p></div>
+        <div style={styles.ownVideoFeed}><p style={styles.videoFeedLabel}>You</p></div>
+        <div style={styles.videoControls}>
+            <HoverButton style={styles.videoControlButton} hoverStyle={styles.videoControlButtonHover}>🎤</HoverButton>
+            <HoverButton style={{...styles.videoControlButton, backgroundColor: '#ef4444' }} hoverStyle={{...styles.videoControlButtonHover, backgroundColor: '#dc2626' }} onClick={onEndCall}>📞</HoverButton>
+            <HoverButton style={styles.videoControlButton} hoverStyle={styles.videoControlButtonHover}>📷</HoverButton>
+        </div>
+    </div>
+);
+
+// --- NAVIGATION & MAIN APP ---
+const MainTabs = ({ user, onLogout }) => {
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeChat, setActiveChat] = useState(null);
+    const [inVideoCall, setInVideoCall] = useState(false);
+
+    const handleChat = useCallback((partner) => setActiveChat(partner), []);
+    const handleBack = useCallback(() => setActiveChat(null), []);
+    const handleStartVideo = useCallback(() => setInVideoCall(true), []);
+    const handleEndVideo = useCallback(() => setInVideoCall(false), []);
+
+    if (inVideoCall && activeChat) return <VideoCallScreen partner={activeChat} onEndCall={handleEndVideo} />;
+    if (activeChat) return <ChatScreen partner={activeChat} onBack={handleBack} onVideoCall={handleStartVideo}/>;
+
+    return (
+        <div style={styles.appContainer}>
+            <div style={styles.contentContainer}>
+                {activeTab === 'dashboard' && <DashboardScreen onChat={handleChat} />}
+                {activeTab === 'communities' && <CommunitiesScreen />}
+                {activeTab === 'profile' && <ProfileScreen user={user} onLogout={onLogout} />}
+            </div>
+            <div style={styles.tabBar}>
+                <button style={styles.tabItem} onClick={() => setActiveTab('dashboard')}><span style={activeTab === 'dashboard' ? styles.tabTextActive : styles.tabText}>Dashboard</span></button>
+                <button style={styles.tabItem} onClick={() => setActiveTab('communities')}><span style={activeTab === 'communities' ? styles.tabTextActive : styles.tabText}>Communities</span></button>
+                <button style={styles.tabItem} onClick={() => setActiveTab('profile')}><span style={activeTab === 'profile' ? styles.tabTextActive : styles.tabText}>Profile</span></button>
+            </div>
+        </div>
+    );
+}
+
+export default function App() {
+    const [user, setUser] = useState(null); 
+    if (!user) return (<div style={{ height: '100vh', backgroundColor: styles.colors.bgLight, fontFamily: styles.fontFamily }}><AuthScreen onAuthSuccess={setUser} /></div>);
+    return (<div style={{ height: '100vh', backgroundColor: styles.colors.bgWhite, fontFamily: styles.fontFamily }}><MainTabs user={user} onLogout={() => setUser(null)} /></div>);
+}
+
+// --- STYLES ---
+const styles = {
+    fontFamily: 'Inter, sans-serif',
+    colors: { primary: '#6366f1', primaryDark: '#4f46e5', secondary: '#a78bfa', teal: '#14b8a6', textDark: '#1e293b', textLight: '#64748b', bgLight: '#f8fafc', bgWhite: '#ffffff', error: '#ef4444', gold: '#f59e0b' },
+    appContainer: { display: 'flex', flexDirection: 'column', height: '100%' },
+    contentContainer: { flex: 1, overflowY: 'auto' },
+    authContainer: { height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, boxSizing: 'border-box' },
+    authBox: { backgroundColor: '#fff', padding: '40px 30px', borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', width: '100%', maxWidth: '400px'},
+    authTitle: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 24, color: '#1e293b'},
+    input: { height: 50, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, padding: '0 15px', marginBottom: 15, fontSize: 16, width: '100%', boxSizing: 'border-box', borderStyle: 'solid', transition: 'border-color 0.2s' },
+    buttonPrimary: { background: 'linear-gradient(to right, #818cf8, #6366f1)', padding: '15px 0', borderRadius: 12, border: 'none', cursor: 'pointer', width: '100%', transition: 'all 0.2s', boxShadow: '0 4px 10px rgba(99, 102, 241, 0.3)' },
+    buttonPrimaryHover: { transform: 'translateY(-2px)' },
+    buttonDisabled: { background: '#d1d5db', cursor: 'not-allowed', boxShadow: 'none' },
+    buttonPrimaryText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    authSwitchButton: { marginTop: 20, background: 'none', border: 'none', cursor: 'pointer', width: '100%' },
+    authSwitchText: { textAlign: 'center', color: '#64748b' },
+    errorText: { color: '#ef4444', textAlign: 'center', marginBottom: 15 },
+    screenContainer: { flex: 1, padding: 20, backgroundColor: '#f8fafc', boxSizing: 'border-box' },
+    screenTitle: { fontSize: 32, fontWeight: 'bold', color: '#1e293b', marginBottom: 20 },
+    card: { backgroundColor: '#fff', padding: 20, borderRadius: 16, marginBottom: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' },
+    cardAvatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
+    cardName: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
+    cardMatchPercent: { fontSize: 24, fontWeight: 'bold', color: '#6366f1' },
+    cardSkillText: { fontSize: 14, color: '#475569', lineHeight: 1.5, marginBottom: 4 },
+    buttonSecondary: { backgroundColor: '#f1f5f9', padding: '12px 0', borderRadius: 12, marginTop: 16, border: 'none', cursor: 'pointer', width: '100%', transition: 'background-color 0.2s' },
+    buttonSecondaryHover: { backgroundColor: '#e2e8f0' },
+    buttonSecondaryText: { color: '#334155', fontSize: 14, fontWeight: 'bold' },
+    profileSection: { backgroundColor: '#fff', padding: 20, borderRadius: 16, marginBottom: 16, border: '1px solid #e2e8f0' },
+    profileSectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#334155', marginBottom: 12 },
+    skillsContainer: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap' },
+    skillTagPurple: { backgroundColor: '#eef2ff', color: '#4338ca', padding: '6px 12px', borderRadius: 999, marginRight: 8, marginBottom: 8, fontSize: 14 },
+    skillTagTeal: { backgroundColor: '#ccfbf1', color: '#0f766e', padding: '6px 12px', borderRadius: 999, marginRight: 8, marginBottom: 8, fontSize: 14 },
+    badgeTag: { backgroundColor: '#fffbeb', color: '#b45309', padding: '6px 12px', borderRadius: 999, marginRight: 8, marginBottom: 8, fontSize: 14, fontWeight: '500' },
+    creditsBox: { marginTop: 15, backgroundColor: '#f1f5f9', padding: '10px 20px', borderRadius: 12, display: 'inline-flex', flexDirection: 'column', alignItems: 'center' },
+    reviewCard: { borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 10 },
+    buttonLogout: { background: 'none', border: '1px solid #e2e8f0', color: '#64748b', padding: '8px 12px', borderRadius: 8, cursor: 'pointer' },
+    buttonLogoutHover: { backgroundColor: '#f8fafc' },
+    chatScreen: { display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#f1f5f9' },
+    chatHeader: { display: 'flex', flexDirection: 'row', alignItems: 'center', padding: '10px 15px', backgroundColor: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0 },
+    chatBackButton: {background: 'none', border: 'none', cursor: 'pointer', padding: 5},
+    chatHeaderText: { flexGrow: 1, fontSize: 18, fontWeight: 'bold', marginLeft: 20, color: '#1e293b'},
+    videoCallButton: { background: '#eef2ff', border: 'none', borderRadius: '50%', width: 40, height: 40, cursor: 'pointer', transition: 'background-color 0.2s'},
+    videoCallButtonHover: { background: '#e0e7ff' },
+    chatMessagesContainer: { flex: 1, overflowY: 'auto', padding: 15 },
+    messageSent: { alignSelf: 'flex-end', backgroundColor: '#6366f1', color: 'white', padding: '10px 15px', borderRadius: '20px 20px 5px 20px', marginBottom: 10, maxWidth: '70%', marginLeft: 'auto'},
+    messageReceived: { alignSelf: 'flex-start', backgroundColor: 'white', color: '#1e293b', padding: '10px 15px', borderRadius: '20px 20px 20px 5px', marginBottom: 10, maxWidth: '70%', marginRight: 'auto'},
+    chatInputContainer: { display: 'flex', padding: 10, backgroundColor: 'white', borderTop: '1px solid #e2e8f0'},
+    chatInput: { flex: 1, border: '1px solid #e2e8f0', borderRadius: 999, padding: '10px 15px', fontSize: 16},
+    sendButton: { background: '#6366f1', color: 'white', border: 'none', borderRadius: '50%', width: 40, height: 40, marginLeft: 10, cursor: 'pointer', transition: 'background-color 0.2s'},
+    sendButtonHover: { background: '#4f46e5' },
+    videoCallContainer: { position: 'relative', width: '100%', height: '100%', backgroundColor: '#1e293b'},
+    mainVideoFeed: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    ownVideoFeed: { position: 'absolute', top: 20, right: 20, width: '25%', height: '25%', backgroundColor: '#475569', borderRadius: 12, border: '2px solid white' , display: 'flex', alignItems: 'center', justifyContent: 'center'},
+    videoFeedLabel: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+    videoControls: { position: 'absolute', bottom: 30, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 20 },
+    videoControlButton: { width: 60, height: 60, borderRadius: '50%', border: 'none', backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'white', fontSize: 24, cursor: 'pointer', transition: 'background-color 0.2s' },
+    videoControlButtonHover: { backgroundColor: 'rgba(255, 255, 255, 0.3)' },
+    tabBar: { display: 'flex', flexDirection: 'row', height: 60, borderTop: '1px solid #e2e8f0', backgroundColor: '#fff' },
+    tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' },
+    tabText: { color: '#64748b', fontSize: 16 },
+    tabTextActive: { color: '#6366f1', fontSize: 16, fontWeight: 'bold' }
+};
+

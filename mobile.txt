@@ -1,0 +1,253 @@
+import React, { useState } from 'react';
+
+// --- MOCK DATA ---
+const mockCurrentUser = {
+  id: 'user_alex',
+  name: 'Alex Ray',
+  email: 'alex.ray@example.com',
+  bio: 'UX designer by day, aspiring musician by night.',
+  credits: 5,
+  skillsToTeach: ['UI/UX Design', 'Figma', 'HTML/CSS'],
+  skillsToLearn: ['Guitar', 'Japanese Cooking', 'Video Editing'],
+  avatar: `https://placehold.co/128x128/dbeafe/4338ca?text=AR`,
+};
+
+const mockMatches = [
+  {
+    id: 'user_taylor',
+    name: 'Taylor K.',
+    avatar: `https://placehold.co/128x128/c7d2fe/4338ca?text=TK`,
+    skillsToTeach: ['Guitar Fundamentals', 'Songwriting'],
+    skillsToLearn: ['UI/UX Design'],
+    matchPercentage: 92,
+  },
+  {
+    id: 'user_jordan',
+    name: 'Jordan Lee',
+    avatar: `https://placehold.co/128x128/e0e7ff/4338ca?text=JL`,
+    skillsToTeach: ['Video Editing', 'Premiere Pro'],
+    skillsToLearn: ['Figma'],
+    matchPercentage: 85,
+  },
+];
+
+// --- API CLIENT SKELETON ---
+const apiClient = {
+  login: async (email, password) => {
+    console.log('Attempting login with:', email, password);
+    return { success: true, token: 'fake-jwt-token', user: mockCurrentUser };
+  },
+  register: async (userData) => {
+    console.log('Registering user:', userData);
+    return { success: true, token: 'fake-jwt-token', user: mockCurrentUser };
+  },
+  getMatches: async (token) => {
+    console.log('Fetching matches...');
+    return { success: true, data: mockMatches };
+  }
+};
+
+// --- SCREEN COMPONENTS (Web-compatible) ---
+
+const AuthScreen = ({ onAuthSuccess }) => {
+    const [isLogin, setIsLogin] = useState(true);
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
+    const handleAuth = async () => {
+        if (isLogin) {
+            const response = await apiClient.login(email, password);
+            if (response.success) onAuthSuccess(response.user);
+        } else {
+            const response = await apiClient.register({ name, email, password });
+            if (response.success) onAuthSuccess(response.user);
+        }
+    };
+    
+    return (
+        <div style={styles.authContainer}>
+            <div style={styles.authBox}>
+                <p style={styles.authTitle}>{isLogin ? 'Welcome Back' : 'Join SkillSwapHub'}</p>
+                
+                {!isLogin && <input placeholder="Full Name" style={styles.input} value={name} onChange={(e) => setName(e.target.value)} />}
+                <input placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+                <input placeholder="Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
+                
+                <button style={styles.buttonPrimary} onClick={handleAuth}>
+                    <span style={styles.buttonPrimaryText}>{isLogin ? 'Login' : 'Create Account'}</span>
+                </button>
+
+                <button onClick={() => setIsLogin(!isLogin)} style={{ marginTop: 20, background: 'none', border: 'none', cursor: 'pointer' }}>
+                    <p style={styles.authSwitchText}>
+                        {isLogin ? "Don't have an account? " : "Already have an account? "}
+                        <span style={{ fontWeight: 'bold', color: '#4f46e5' }}>{isLogin ? 'Register' : 'Login'}</span>
+                    </p>
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const MatchCard = ({ match, onChat }) => (
+    <div style={styles.card}>
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                <img src={match.avatar} style={styles.cardAvatar} alt={match.name}/>
+                <p style={styles.cardName}>{match.name}</p>
+            </div>
+            <div style={{ alignItems: 'flex-end' }}>
+                <p style={styles.cardMatchPercent}>{match.matchPercentage}%</p>
+                <p style={{ fontSize: 12, color: '#64748b' }}>Match</p>
+            </div>
+        </div>
+        <div style={{ marginTop: 12 }}>
+            <p style={styles.cardSkillText}><span style={{fontWeight: 'bold', color: '#16a34a'}}>TEACHES:</span> {match.skillsToTeach.join(', ')}</p>
+            <p style={styles.cardSkillText}><span style={{fontWeight: 'bold', color: '#2563eb'}}>WANTS:</span> {match.skillsToLearn.join(', ')}</p>
+        </div>
+        <button style={styles.buttonSecondary} onClick={() => onChat(match)}>
+            <span style={styles.buttonSecondaryText}>Start Chat</span>
+        </button>
+    </div>
+);
+
+const DashboardScreen = ({ onChat }) => {
+    return (
+        <div style={styles.screenContainer}>
+            <p style={styles.screenTitle}>Your Skill Matches</p>
+            {mockMatches.map(match => <MatchCard key={match.id} match={match} onChat={onChat}/>)}
+        </div>
+    );
+};
+
+const ProfileScreen = ({ user }) => (
+    <div style={styles.screenContainer}>
+        <div style={{ alignItems: 'center', marginBottom: 20}}>
+            <img src={user.avatar} style={{ width: 100, height: 100, borderRadius: 50 }} alt={user.name}/>
+            <p style={{ fontSize: 24, fontWeight: 'bold', color: '#1e293b', marginTop: 10 }}>{user.name}</p>
+            <p style={{ color: '#64748b' }}>{user.bio}</p>
+        </div>
+        <div style={styles.profileSection}>
+            <p style={styles.profileSectionTitle}>Skills I Teach</p>
+            <div style={styles.skillsContainer}>
+                {user.skillsToTeach.map(s => <span key={s} style={styles.skillTag}>{s}</span>)}
+            </div>
+        </div>
+        <div style={styles.profileSection}>
+            <p style={styles.profileSectionTitle}>Skills I Want to Learn</p>
+            <div style={styles.skillsContainer}>
+                {user.skillsToLearn.map(s => <span key={s} style={styles.skillTag}>{s}</span>)}
+            </div>
+        </div>
+    </div>
+);
+
+const ChatScreen = ({ partner, onBack }) => (
+    <div style={{ flex: 1, backgroundColor: '#f1f5f9', display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={styles.chatHeader}>
+            <button onClick={onBack} style={{background: 'none', border: 'none', cursor: 'pointer'}}>
+                <span style={{ color: '#4f46e5', fontSize: 16 }}>Back</span>
+            </button>
+            <p style={styles.chatHeaderText}>{partner.name}</p>
+        </div>
+        <div style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <p style={{ color: '#94a3b8' }}>Chat with {partner.name} here.</p>
+        </div>
+    </div>
+);
+
+
+// --- NAVIGATION & MAIN APP ---
+
+const MainTabs = ({ user, onLogout }) => {
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeChat, setActiveChat] = useState(null);
+
+    const handleChat = (partner) => setActiveChat(partner);
+    const handleBack = () => setActiveChat(null);
+
+    if (activeChat) {
+        return <ChatScreen partner={activeChat} onBack={handleBack} />;
+    }
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+                {activeTab === 'dashboard' && <DashboardScreen onChat={handleChat} />}
+                {activeTab === 'profile' && <ProfileScreen user={user} />}
+            </div>
+            <div style={styles.tabBar}>
+                <button style={styles.tabItem} onClick={() => setActiveTab('dashboard')}>
+                    <span style={activeTab === 'dashboard' ? styles.tabTextActive : styles.tabText}>Dashboard</span>
+                </button>
+                 <button style={styles.tabItem} onClick={() => setActiveTab('profile')}>
+                    <span style={activeTab === 'profile' ? styles.tabTextActive : styles.tabText}>Profile</span>
+                </button>
+                <button style={styles.tabItem} onClick={onLogout}>
+                    <span style={styles.tabText}>Logout</span>
+                </button>
+            </div>
+        </div>
+    );
+}
+
+export default function App() {
+    const [user, setUser] = useState(null); 
+
+    if (!user) {
+        return (
+            <div style={{ height: '100vh', backgroundColor: '#f1f5f9' }}>
+                <AuthScreen onAuthSuccess={setUser} />
+            </div>
+        );
+    }
+    
+    return (
+        <div style={{ height: '100vh', backgroundColor: '#fff' }}>
+            <MainTabs user={user} onLogout={() => setUser(null)} />
+        </div>
+    );
+}
+
+
+// --- STYLES (CSS-in-JS for Web) ---
+const styles = {
+    // Auth Screens
+    authContainer: { height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, boxSizing: 'border-box' },
+    authBox: { backgroundColor: '#fff', padding: 30, borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px'},
+    authTitle: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 24, color: '#1e293b'},
+    input: { height: 50, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: '0 15px', marginBottom: 15, fontSize: 16, width: '100%', boxSizing: 'border-box', borderStyle: 'solid' },
+    buttonPrimary: { backgroundColor: '#4f46e5', padding: '15px 0', borderRadius: 8, alignItems: 'center', border: 'none', cursor: 'pointer', width: '100%' },
+    buttonPrimaryText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    authSwitchText: { textAlign: 'center', color: '#64748b' },
+    
+    // Main Screens
+    screenContainer: { flex: 1, padding: 20, backgroundColor: '#f8fafc', boxSizing: 'border-box' },
+    screenTitle: { fontSize: 32, fontWeight: 'bold', color: '#1e293b', marginBottom: 20 },
+    
+    // Match Card
+    card: { backgroundColor: '#fff', padding: 20, borderRadius: 12, marginBottom: 16, borderColor: '#e2e8f0', borderWidth: 1, borderStyle: 'solid' },
+    cardAvatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
+    cardName: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
+    cardMatchPercent: { fontSize: 24, fontWeight: 'bold', color: '#4f46e5' },
+    cardSkillText: { fontSize: 14, color: '#475569', lineHeight: 1.5, marginBottom: 4 },
+    buttonSecondary: { backgroundColor: '#f1f5f9', padding: '12px 0', borderRadius: 8, alignItems: 'center', marginTop: 16, border: 'none', cursor: 'pointer', width: '100%' },
+    buttonSecondaryText: { color: '#334155', fontSize: 14, fontWeight: 'bold' },
+
+    // Profile Screen
+    profileSection: { backgroundColor: '#fff', padding: 20, borderRadius: 12, marginBottom: 16, borderColor: '#e2e8f0', borderWidth: 1, borderStyle: 'solid' },
+    profileSectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#334155', marginBottom: 12 },
+    skillsContainer: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap' },
+    skillTag: { backgroundColor: '#eef2ff', color: '#4338ca', padding: '6px 12px', borderRadius: 16, marginRight: 8, marginBottom: 8, fontSize: 14 },
+
+    // Chat Screen
+    chatHeader: { display: 'flex', flexDirection: 'row', alignItems: 'center', padding: 15, backgroundColor: '#fff', borderBottom: '1px solid #e2e8f0' },
+    chatHeaderText: { fontSize: 18, fontWeight: 'bold', marginLeft: 20, color: '#1e293b'},
+
+    // Tab Navigation
+    tabBar: { display: 'flex', flexDirection: 'row', height: 60, borderTop: '1px solid #e2e8f0', backgroundColor: '#fff' },
+    tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' },
+    tabText: { color: '#64748b', fontSize: 16 },
+    tabTextActive: { color: '#4f46e5', fontSize: 16, fontWeight: 'bold' }
+};
+

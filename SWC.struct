@@ -1,0 +1,117 @@
+This structure is organized as a monorepo, allowing the frontend, backend, and mobile apps to coexist in a single repository while being developed and deployed independently.
+
+skillswaphub/
+├── .github/              # GitHub Actions for CI/CD
+│   └── workflows/
+│       ├── backend-ci.yml
+│       └── frontend-ci.yml
+│
+├── backend/              # Node.js, Express, MongoDB
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── routes/   # API route definitions
+│   │   │       ├── auth.routes.js
+│   │   │       ├── users.routes.js
+│   │   │       ├── skills.routes.js
+│   │   │       └── chat.routes.js
+│   │   │
+│   │   ├── config/       # Environment variables, database connection
+│   │   │   ├── db.js
+│   │   │   └── index.js
+│   │   │
+│   │   ├── controllers/  # Logic to handle requests and responses
+│   │   │   ├── auth.controller.js
+│   │   │   ├── user.controller.js
+│   │   │   └── skill.controller.js
+│   │   │
+│   │   ├── middlewares/  # Functions to run before controllers (e.g., auth)
+│   │   │   └── auth.middleware.js
+│   │   │
+│   │   ├── models/       # MongoDB data schemas
+│   │   │   ├── User.model.js
+│   │   │   ├── Skill.model.js
+│   │   │   ├── Chat.model.js
+│   │   │   └── Credit.model.js
+│   │   │
+│   │   ├── services/     # Complex business logic (e.g., matching algorithm)
+│   │   │   ├── matching.service.js
+│   │   │   └── notification.service.js
+│   │   │
+│   │   └── utils/        # Helper functions, error handlers
+│   │       └── apiError.js
+│   │
+│   ├── .env.example      # Example environment variables
+│   ├── package.json
+│   └── server.js         # Main application entry point
+│
+├── frontend/             # React.js / Next.js Web App
+│   ├── src/
+│   │   ├── app/          # Next.js App Router (or /pages for Pages Router)
+│   │   │   ├── (auth)/   # Route group for auth pages
+│   │   │   │   ├── login/page.jsx
+│   │   │   │   └── register/page.jsx
+│   │   │   ├── (main)/   # Route group for main app layout
+│   │   │   │   ├── dashboard/page.jsx
+│   │   │   │   ├── profile/page.jsx
+│   │   │   │   ├── chat/[chatId]/page.jsx
+│   │   │   │   └── layout.jsx
+│   │   │   └── layout.jsx
+│   │   │
+│   │   ├── components/   # Reusable React components
+│   │   │   ├── common/   # Buttons, Inputs, Modals
+│   │   │   ├── layout/   # Navbar, Sidebar, Footer
+│   │   │   └── ui/       # Specific UI elements like SkillCard, ChatBubble
+│   │   │
+│   │   ├── contexts/     # React Context for global state (Auth, Notifications)
+│   │   │   └── AuthContext.js
+│   │   │
+│   │   ├── hooks/        # Custom hooks (e.g., useApi, useAuth)
+│   │   │
+│   │   ├── lib/          # Helper functions, API client, utils
+│   │   │   └── apiClient.js
+│   │   │
+│   │   └── styles/       # Global styles
+│   │       └── globals.css
+│   │
+│   ├── public/           # Static assets (images, fonts)
+│   ├── .env.local.example
+│   ├── next.config.js
+│   └── package.json
+│
+├── mobile/               # React Native / Expo App
+│   ├── app/              # Screens (using Expo Router)
+│   │   ├── (tabs)/
+│   │   │   ├── _layout.jsx
+│   │   │   ├── dashboard.jsx
+│   │   │   ├── profile.jsx
+│   │   │   └── messages.jsx
+│   │   ├── _layout.jsx
+│   │   ├── index.jsx     # Entry/Login screen
+│   │   └── chat/[chatId].jsx
+│   │
+│   ├── api/              # API client for connecting to the backend
+│   │   └── client.js
+│   │
+│   ├── assets/           # Images, icons, fonts
+│   │
+│   ├── components/       # Reusable React Native components
+│   │   ├── common/
+│   │   └── ui/
+│   │
+│   ├── contexts/         # State management
+│   │
+│   ├── hooks/            # Custom hooks
+│   │
+│   ├── app.json          # Expo configuration
+│   └── package.json
+│
+├── docs/                 # Project documentation
+│   ├── api-spec.md       # API endpoint documentation
+│   └── architecture.md   # System architecture overview
+│
+├── scripts/              # Automation and utility scripts
+│   ├── deploy.sh
+│   └── seed-database.js  # Script to populate DB with initial data
+│
+├── .gitignore            # Files and folders to ignore in version control
+└── README.md             # Project overview, setup, and contribution guide
